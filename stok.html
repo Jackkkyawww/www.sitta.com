@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<!--
+  STOK.HTML - Halaman Informasi Stok Bahan Ajar
+  Fitur: Tampilkan tabel dari dataBahanAjar, tambah baris baru via form & DOM
+-->
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stok Bahan Ajar – SITTA</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">SITTA <span>UT</span></div>
+  <ul class="nav-links">
+    <li><a href="stok.html" class="active">📦 Informasi Bahan Ajar</a></li>
+    <li><a href="tracking.html">🚚 Tracking Pengiriman</a></li>
+    <li class="dropdown">
+      <a href="#">📊 Laporan ▾</a>
+      <div class="dropdown-menu">
+        <a href="dashboard.html">📈 Monitoring Progress DO</a>
+        <a href="dashboard.html">📋 Rekap Bahan Ajar</a>
+      </div>
+    </li>
+    <li><a href="dashboard.html">🏠 Dashboard</a></li>
+    <li><a href="index.html" onclick="sessionStorage.clear()" style="color:#f39c12;">🚪 Logout</a></li>
+  </ul>
+  <span id="greeting"></span>
+</nav>
+
+
+<main class="container">
+  <h2 style="font-size:1.4rem; color:var(--primary); font-weight:800; margin-bottom:1.5rem;">
+    📦 Informasi Stok Bahan Ajar
+  </h2>
+
+  <!-- Ringkasan statistik stok -->
+  <div class="stat-grid" id="statStok"></div>
+
+  <!-- Tabel Bahan Ajar -->
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>📋 Daftar Bahan Ajar</span>
+      <div class="d-flex gap-1">
+        <!-- Search filter -->
+        <input
+          type="text"
+          id="inputCari"
+          class="form-control"
+          style="width:220px;"
+          placeholder="🔍 Cari nama/kode..."
+          oninput="filterTabel()"
+        />
+        <button class="btn btn-accent btn-sm" onclick="bukaModalTambah()">➕ Tambah</button>
+      </div>
+    </div>
+
+    <!-- Alert sukses tambah -->
+    <div class="alert alert-success" id="alertTambahSukses">
+      ✅ Bahan ajar baru berhasil ditambahkan!
+    </div>
+
+    <div class="table-wrapper">
+      <table id="tabelStok">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Kode Lokasi</th>
+            <th>Kode Barang</th>
+            <th>Nama Barang</th>
+            <th>Jenis</th>
+            <th>Edisi</th>
+            <th>Stok</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <!-- tbody diisi oleh JavaScript -->
+        <tbody id="tbodyStok"></tbody>
+        <!-- tfoot: baris total -->
+        <tfoot id="tfootStok"></tfoot>
+      </table>
+    </div>
+  </div>
+</main>
+
+
+<!-- ==========================================
+     MODAL: TAMBAH BAHAN AJAR BARU
+     ========================================== -->
+<div class="modal-overlay" id="modalTambah" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">➕ Tambah Bahan Ajar Baru</span>
+      <button class="modal-close" onclick="tutupModal()">&times;</button>
+    </div>
+
+    <!-- Alert validasi dalam modal -->
+    <div class="alert alert-danger" id="alertFormError">
+      ⚠️ Semua field wajib diisi dengan benar!
+    </div>
+
+    <div class="form-group">
+      <label for="fKodeLokasi">Kode Lokasi</label>
+      <input type="text" id="fKodeLokasi" class="form-control" placeholder="OTMP01" />
+    </div>
+    <div class="form-group">
+      <label for="fKodeBarang">Kode Barang</label>
+      <input type="text" id="fKodeBarang" class="form-control" placeholder="EKMA4116" />
+    </div>
+    <div class="form-group">
+      <label for="fNamaBarang">Nama Barang</label>
+      <input type="text" id="fNamaBarang" class="form-control" placeholder="Nama bahan ajar" />
+    </div>
+    <div class="form-group">
+      <label for="fJenisBarang">Jenis Barang</label>
+      <!-- select = dropdown pilihan -->
+      <select id="fJenisBarang" class="form-control">
+        <option value="">-- Pilih Jenis --</option>
+        <option value="BMP">BMP</option>
+        <option value="Suplemen">Suplemen</option>
+        <option value="Modul">Modul</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="fEdisi">Edisi</label>
+      <input type="number" id="fEdisi" class="form-control" placeholder="1" min="1" />
+    </div>
+    <div class="form-group">
+      <label for="fStok">Jumlah Stok</label>
+      <input type="number" id="fStok" class="form-control" placeholder="0" min="0" />
+    </div>
+
+    <div class="d-flex gap-1 justify-end">
+      <button class="btn btn-outline" onclick="tutupModal()">Batal</button>
+      <button class="btn btn-primary" onclick="tambahBahanAjar()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     MODAL: EDIT STOK
+     ========================================== -->
+<div class="modal-overlay" id="modalEdit" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Edit Stok</span>
+      <button class="modal-close" onclick="tutupModalEdit()">&times;</button>
+    </div>
+    <p id="editNamaBarang" style="font-weight:600; margin-bottom:1rem;"></p>
+    <div class="form-group">
+      <label for="editStokBaru">Stok Baru</label>
+      <input type="number" id="editStokBaru" class="form-control" min="0" />
+    </div>
+    <input type="hidden" id="editIndex" />
+    <div class="d-flex gap-1 justify-end">
+      <button class="btn btn-outline" onclick="tutupModalEdit()">Batal</button>
+      <button class="btn btn-success" onclick="simpanEditStok()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/data.js"></script>
+<script>
+  // --------------------------------------------------------
+  // Salin dataBahanAjar ke variabel lokal agar bisa dimodifikasi
+  // (dataBahanAjar di data.js adalah const, tidak bisa diubah langsung)
+  // Spread operator [...arr] = membuat salinan array
+  // --------------------------------------------------------
+  let listBahanAjar = [...dataBahanAjar];
+
+  // --------------------------------------------------------
+  // FUNGSI: renderTabel()
+  // Menggambar ulang seluruh tabel dari array listBahanAjar
+  // Dipanggil setiap kali data berubah (tambah/edit)
+  // --------------------------------------------------------
+  function renderTabel(data) {
+    const tbody = document.getElementById('tbodyStok');
+    const tfoot = document.getElementById('tfootStok');
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#aaa; padding:2rem;">Tidak ada data</td></tr>`;
+      tfoot.innerHTML = '';
+      return;
+    }
+
+    // Buat baris untuk setiap item
+    // index = nomor urut (0, 1, 2, ...)
+    tbody.innerHTML = data.map((item, index) => {
+      // Cari index asli di listBahanAjar (untuk keperluan edit)
+      const idxAsli = listBahanAjar.indexOf(item);
+
+      // Warna stok: merah < 100, kuning < 300, hijau >= 300
+      const stokKelas = item.stok < 100 ? 'badge-danger' : item.stok < 300 ? 'badge-warning' : 'badge-success';
+
+      return `
+        <tr id="baris-${idxAsli}">
+          <td>${index + 1}</td>
+          <td>${item.kodeLokasi}</td>
+          <td><code>${item.kodeBarang}</code></td>
+          <td>${item.namaBarang}</td>
+          <td><span class="badge badge-info">${item.jenisBarang}</span></td>
+          <td>Ed. ${item.edisi}</td>
+          <td>
+            <span class="badge ${stokKelas}">${item.stok.toLocaleString('id')}</span>
+          </td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="bukaModalEdit(${idxAsli})">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="hapusBaris(${idxAsli})">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Hitung total stok untuk baris footer
+    const totalStok = data.reduce((sum, item) => sum + item.stok, 0);
+    tfoot.innerHTML = `
+      <tr style="background:#f0f4f8; font-weight:700;">
+        <td colspan="6" style="padding:0.7rem 1rem; text-align:right; color:var(--primary);">TOTAL STOK</td>
+        <td style="padding:0.7rem 1rem; color:var(--accent);">${totalStok.toLocaleString('id')}</td>
+        <td></td>
+      </tr>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanStatistikStok()
+  // Menghitung dan menampilkan kartu ringkasan stok
+  // --------------------------------------------------------
+  function tampilkanStatistikStok() {
+    const total     = listBahanAjar.reduce((s, d) => s + d.stok, 0);
+    const kritis    = listBahanAjar.filter(d => d.stok < 100).length;
+    const jenisBMP  = listBahanAjar.filter(d => d.jenisBarang === 'BMP').length;
+
+    document.getElementById('statStok').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Jumlah Judul</div><div class="stat-value">${listBahanAjar.length}</div></div>
+      <div class="stat-card accent"><div class="stat-label">Total Stok</div><div class="stat-value">${total.toLocaleString('id')}</div></div>
+      <div class="stat-card success"><div class="stat-label">Jenis BMP</div><div class="stat-value">${jenisBMP}</div></div>
+      <div class="stat-card danger"><div class="stat-label">Stok Kritis</div><div class="stat-value">${kritis}</div></div>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: filterTabel()
+  // Menyaring baris tabel berdasarkan kata kunci pencarian
+  // --------------------------------------------------------
+  function filterTabel() {
+    const kata = document.getElementById('inputCari').value.toLowerCase();
+    // Array.filter() = ambil elemen yang memenuhi kondisi
+    const hasilFilter = listBahanAjar.filter(item =>
+      item.namaBarang.toLowerCase().includes(kata) ||
+      item.kodeBarang.toLowerCase().includes(kata) ||
+      item.kodeLokasi.toLowerCase().includes(kata)
+    );
+    renderTabel(hasilFilter);
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: bukaModalTambah() & tutupModal()
+  // --------------------------------------------------------
+  function bukaModalTambah() {
+    // Reset semua field form sebelum dibuka
+    ['fKodeLokasi','fKodeBarang','fNamaBarang','fEdisi','fStok'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('fJenisBarang').value = '';
+    document.getElementById('alertFormError').classList.remove('show');
+    document.getElementById('modalTambah').classList.add('active');
+  }
+
+  function tutupModal() {
+    document.getElementById('modalTambah').classList.remove('active');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tambahBahanAjar()
+  // Mengambil data dari form, validasi, lalu tambahkan ke array
+  // dan update tabel (manipulasi DOM)
+  // --------------------------------------------------------
+  function tambahBahanAjar() {
+    // Ambil semua nilai dari form
+    const kodeLokasi = document.getElementById('fKodeLokasi').value.trim().toUpperCase();
+    const kodeBarang = document.getElementById('fKodeBarang').value.trim().toUpperCase();
+    const namaBarang = document.getElementById('fNamaBarang').value.trim();
+    const jenisBarang= document.getElementById('fJenisBarang').value;
+    const edisi      = parseInt(document.getElementById('fEdisi').value);
+    const stok       = parseInt(document.getElementById('fStok').value);
+
+    // Sembunyikan alert lama
+    document.getElementById('alertFormError').classList.remove('show');
+
+    // Validasi: semua field wajib diisi & angka valid
+    if (!kodeLokasi || !kodeBarang || !namaBarang || !jenisBarang || isNaN(edisi) || isNaN(stok)) {
+      document.getElementById('alertFormError').classList.add('show');
+      return;
+    }
+
+    // Buat objek baru dengan data dari form
+    const itemBaru = { kodeLokasi, kodeBarang, namaBarang, jenisBarang, edisi, stok };
+
+    // Tambahkan ke array menggunakan .push()
+    listBahanAjar.push(itemBaru);
+
+    // Re-render tabel (DOM diperbarui)
+    renderTabel(listBahanAjar);
+    tampilkanStatistikStok();
+
+    // Tutup modal dan tampilkan notifikasi sukses
+    tutupModal();
+    tampilkanAlert('alertTambahSukses');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: hapusBaris(index)
+  // Menghapus item dari array berdasarkan index
+  // --------------------------------------------------------
+  function hapusBaris(index) {
+    const item = listBahanAjar[index];
+    // confirm() = dialog konfirmasi browser (OK / Cancel)
+    if (confirm(`Hapus "${item.namaBarang}"?\nTindakan ini tidak bisa dibatalkan.`)) {
+      // splice(index, 1) = hapus 1 elemen mulai dari index
+      listBahanAjar.splice(index, 1);
+      renderTabel(listBahanAjar);
+      tampilkanStatistikStok();
+    }
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: bukaModalEdit(index)
+  // Membuka modal edit stok untuk item tertentu
+  // --------------------------------------------------------
+  function bukaModalEdit(index) {
+    const item = listBahanAjar[index];
+    document.getElementById('editNamaBarang').textContent = `📦 ${item.namaBarang} (${item.kodeBarang})`;
+    document.getElementById('editStokBaru').value = item.stok;
+    document.getElementById('editIndex').value = index; // simpan index di hidden input
+    document.getElementById('modalEdit').classList.add('active');
+  }
+
+  function tutupModalEdit() {
+    document.getElementById('modalEdit').classList.remove('active');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: simpanEditStok()
+  // Menyimpan perubahan stok dari modal edit
+  // --------------------------------------------------------
+  function simpanEditStok() {
+    const index    = parseInt(document.getElementById('editIndex').value);
+    const stokBaru = parseInt(document.getElementById('editStokBaru').value);
+
+    if (isNaN(stokBaru) || stokBaru < 0) {
+      alert('Stok harus berupa angka positif!');
+      return;
+    }
+
+    // Update nilai stok di array
+    listBahanAjar[index].stok = stokBaru;
+
+    // Re-render tabel
+    renderTabel(listBahanAjar);
+    tampilkanStatistikStok();
+    tutupModalEdit();
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI UTILITAS: tampilkanAlert(id)
+  // --------------------------------------------------------
+  function tampilkanAlert(id) {
+    document.getElementById(id).classList.add('show');
+    setTimeout(() => document.getElementById(id).classList.remove('show'), 3000);
+  }
+
+  // --------------------------------------------------------
+  // INISIALISASI
+  // --------------------------------------------------------
+  if (!sessionStorage.getItem('namaUser')) window.location.href = 'index.html';
+
+  // Greeting
+  (function() {
+    const jam = new Date().getHours();
+    const s = jam < 12 ? '🌅 Pagi' : jam < 15 ? '☀️ Siang' : jam < 18 ? '🌤️ Sore' : '🌙 Malam';
+    document.getElementById('greeting').textContent = s + ', ' + (sessionStorage.getItem('namaUser') || '');
+  })();
+
+  // Render tabel pertama kali dari dataBahanAjar
+  renderTabel(listBahanAjar);
+  tampilkanStatistikStok();
+
+  // Tutup modal bila klik di luar kotak
+  document.querySelectorAll('.modal-overlay').forEach(ov => {
+    ov.addEventListener('click', e => {
+      if (e.target === ov) {
+        ov.id === 'modalEdit' ? tutupModalEdit() : tutupModal();
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

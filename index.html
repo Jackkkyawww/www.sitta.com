@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!--
+  INDEX.HTML - Halaman Login Aplikasi SITTA
+  
+  Konsep HTML Semantik:
+  - <main> untuk konten utama
+  - <section> untuk grup form
+  - <label> selalu dipasangkan dengan input (aksesibilitas)
+-->
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – SITTA Universitas Terbuka</title>
+  <!-- External CSS (cara 3: external stylesheet) -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Internal CSS (cara 2: internal style) – hanya untuk halaman login -->
+  <style>
+    /* Gaya khusus halaman ini yang tidak ada di style.css */
+    .divider {
+      text-align: center;
+      color: #aaa;
+      font-size: 0.8rem;
+      margin: 1rem 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 42%;
+      height: 1px;
+      background: #ddd;
+    }
+    .divider::before { left: 0; }
+    .divider::after  { right: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ==========================================
+     HALAMAN LOGIN
+     ========================================== -->
+<main class="login-page">
+  <div class="login-card">
+
+    <!-- Logo / Judul -->
+    <div class="login-logo">
+      <h1>SITTA</h1>
+      <p>Sistem Informasi Tiras &amp; Transaksi Bahan Ajar</p>
+      <p style="font-size:0.78rem; color:#aaa; margin-top:4px;">Universitas Terbuka</p>
+    </div>
+
+    <!-- Alert error – tersembunyi, muncul bila login gagal -->
+    <!-- Inline style: display:none (cara 1: inline style, digunakan minimal) -->
+    <div class="alert alert-danger" id="alertError" role="alert">
+      ⚠️ Email atau password yang Anda masukkan salah!
+    </div>
+
+    <!-- Form Login -->
+    <section aria-label="Form Login">
+      <!-- Input Email -->
+      <div class="form-group">
+        <label for="inputEmail">Email</label>
+        <div class="input-icon-wrap">
+          <span class="icon">✉</span>
+          <input
+            type="email"
+            id="inputEmail"
+            class="form-control"
+            placeholder="contoh@ut.ac.id"
+            autocomplete="email"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Input Password -->
+      <div class="form-group">
+        <label for="inputPassword">Password</label>
+        <div class="input-icon-wrap">
+          <span class="icon">🔒</span>
+          <input
+            type="password"
+            id="inputPassword"
+            class="form-control"
+            placeholder="Masukkan password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Link Lupa Password -->
+      <div style="text-align:right; margin-bottom:1rem;">
+        <button class="login-links" onclick="bukaModalLupaPassword()">Lupa Password?</button>
+      </div>
+
+      <!-- Tombol Login -->
+      <button class="btn btn-primary btn-block" onclick="prosesLogin()">
+        🔑 Masuk
+      </button>
+
+      <div class="divider">atau</div>
+
+      <!-- Tombol Daftar -->
+      <button class="btn btn-outline btn-block" onclick="bukaModalDaftar()">
+        📝 Belum punya akun? Daftar
+      </button>
+    </section>
+
+    <!-- Catatan akun demo -->
+    <p style="text-align:center; font-size:0.75rem; color:#aaa; margin-top:1.2rem;">
+      Demo: demo@ut.ac.id / demo123
+    </p>
+  </div>
+</main>
+
+
+<!-- ==========================================
+     MODAL: LUPA PASSWORD
+     Modal = kotak dialog yang muncul di atas halaman
+     Dikontrol dengan class "active" via JavaScript
+     ========================================== -->
+<div class="modal-overlay" id="modalLupaPassword" role="dialog" aria-modal="true" aria-labelledby="titleLupa">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="titleLupa">🔑 Lupa Password</span>
+      <button class="modal-close" onclick="tutupModal('modalLupaPassword')" aria-label="Tutup">&times;</button>
+    </div>
+    <p style="font-size:0.9rem; color:#555; margin-bottom:1rem;">
+      Masukkan email Anda. Kami akan mengirimkan instruksi reset password.
+    </p>
+    <div class="form-group">
+      <label for="emailReset">Email Terdaftar</label>
+      <input type="email" id="emailReset" class="form-control" placeholder="email@ut.ac.id" />
+    </div>
+    <div class="alert alert-success" id="alertResetSukses">
+      ✅ Instruksi reset password telah dikirim ke email Anda!
+    </div>
+    <button class="btn btn-primary btn-block" onclick="kirimResetPassword()">
+      Kirim Reset Password
+    </button>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     MODAL: DAFTAR AKUN BARU
+     ========================================== -->
+<div class="modal-overlay" id="modalDaftar" role="dialog" aria-modal="true" aria-labelledby="titleDaftar">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="titleDaftar">📝 Daftar Akun Baru</span>
+      <button class="modal-close" onclick="tutupModal('modalDaftar')" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="form-group">
+      <label for="daftarNama">Nama Lengkap</label>
+      <input type="text" id="daftarNama" class="form-control" placeholder="Nama lengkap Anda" />
+    </div>
+    <div class="form-group">
+      <label for="daftarEmail">Email</label>
+      <input type="email" id="daftarEmail" class="form-control" placeholder="email@ut.ac.id" />
+    </div>
+    <div class="form-group">
+      <label for="daftarPassword">Password</label>
+      <input type="password" id="daftarPassword" class="form-control" placeholder="Min. 6 karakter" />
+    </div>
+    <div class="alert alert-danger" id="alertDaftarError">
+      ⚠️ Semua field wajib diisi!
+    </div>
+    <div class="alert alert-success" id="alertDaftarSukses">
+      ✅ Pendaftaran berhasil! Silakan login.
+    </div>
+    <button class="btn btn-primary btn-block" onclick="prosesDaftar()">
+      Daftar Sekarang
+    </button>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     JAVASCRIPT
+     Semua logika halaman login ada di sini
+     ========================================== -->
+<!-- Data dummy untuk validasi login -->
+<script src="js/data.js"></script>
+
+<script>
+  // --------------------------------------------------------
+  // FUNGSI: prosesLogin()
+  // Dipanggil saat tombol "Masuk" diklik
+  // --------------------------------------------------------
+  function prosesLogin() {
+    // 1. Ambil nilai dari input menggunakan DOM
+    //    document.getElementById() = mencari elemen HTML berdasarkan id-nya
+    //    .value = mengambil teks yang ada di dalam input
+    const email    = document.getElementById('inputEmail').value.trim();
+    const password = document.getElementById('inputPassword').value.trim();
+
+    // 2. Validasi: cek apakah field kosong
+    if (!email || !password) {
+      // alert() = fungsi bawaan browser untuk popup sederhana
+      alert('⚠️ Email dan password tidak boleh kosong!');
+      return; // hentikan fungsi di sini (jangan lanjut)
+    }
+
+    // 3. Cari user yang cocok di array dataUser (dari data.js)
+    //    Array.find() = mencari elemen pertama yang memenuhi kondisi
+    //    Arrow function (user => ...) = fungsi singkat
+    const userDitemukan = dataUser.find(
+      user => user.email === email && user.password === password
+    );
+
+    // 4. Cek hasil pencarian
+    if (userDitemukan) {
+      // Login berhasil: simpan nama user ke sessionStorage
+      // sessionStorage = penyimpanan sementara di browser (hilang saat tab ditutup)
+      sessionStorage.setItem('namaUser', userDitemukan.nama);
+      sessionStorage.setItem('emailUser', userDitemukan.email);
+
+      // Pindah ke halaman dashboard
+      // window.location.href = cara JavaScript untuk navigasi halaman
+      window.location.href = 'dashboard.html';
+    } else {
+      // Login gagal: tampilkan alert error
+      tampilkanAlert('alertError');
+    }
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanAlert(id)
+  // Menampilkan div alert dengan menambahkan class 'show'
+  // --------------------------------------------------------
+  function tampilkanAlert(id) {
+    // classList.add() = menambahkan class CSS ke elemen
+    document.getElementById(id).classList.add('show');
+
+    // setTimeout() = menjalankan kode setelah jeda waktu (milidetik)
+    // Di sini: alert otomatis hilang setelah 3 detik
+    setTimeout(() => {
+      document.getElementById(id).classList.remove('show');
+    }, 3000);
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: bukaModalLupaPassword()
+  // Membuka modal lupa password
+  // --------------------------------------------------------
+  function bukaModalLupaPassword() {
+    // classList.add('active') = menambahkan class 'active' agar modal muncul
+    // (Lihat CSS: .modal-overlay.active { display: flex; })
+    document.getElementById('modalLupaPassword').classList.add('active');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: bukaModalDaftar()
+  // Membuka modal form daftar
+  // --------------------------------------------------------
+  function bukaModalDaftar() {
+    document.getElementById('modalDaftar').classList.add('active');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tutupModal(id)
+  // Menutup modal berdasarkan id-nya
+  // --------------------------------------------------------
+  function tutupModal(id) {
+    // classList.remove() = menghapus class dari elemen
+    document.getElementById(id).classList.remove('active');
+  }
+
+  // Tutup modal bila user klik di luar kotak modal
+  // document.querySelectorAll() = ambil semua elemen yang cocok selector
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    // addEventListener() = menambahkan event listener (pemantau event)
+    overlay.addEventListener('click', function(e) {
+      // e.target = elemen yang diklik
+      // e.currentTarget = elemen yang memasang listener (si overlay itu sendiri)
+      // Jika yang diklik adalah overlay-nya (bukan isi modal), tutup modal
+      if (e.target === e.currentTarget) {
+        tutupModal(this.id);
+      }
+    });
+  });
+
+  // --------------------------------------------------------
+  // FUNGSI: kirimResetPassword()
+  // Simulasi pengiriman reset password
+  // --------------------------------------------------------
+  function kirimResetPassword() {
+    const email = document.getElementById('emailReset').value.trim();
+    if (!email) {
+      alert('Masukkan email terlebih dahulu!');
+      return;
+    }
+    tampilkanAlert('alertResetSukses');
+    // Kosongkan field setelah sukses
+    document.getElementById('emailReset').value = '';
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: prosesDaftar()
+  // Simulasi validasi form daftar
+  // --------------------------------------------------------
+  function prosesDaftar() {
+    const nama     = document.getElementById('daftarNama').value.trim();
+    const email    = document.getElementById('daftarEmail').value.trim();
+    const password = document.getElementById('daftarPassword').value.trim();
+
+    // Sembunyikan alert lama dulu
+    document.getElementById('alertDaftarError').classList.remove('show');
+    document.getElementById('alertDaftarSukses').classList.remove('show');
+
+    // Validasi sederhana
+    if (!nama || !email || !password) {
+      tampilkanAlert('alertDaftarError');
+      return;
+    }
+    if (password.length < 6) {
+      alert('Password minimal 6 karakter!');
+      return;
+    }
+
+    // Simulasi sukses
+    tampilkanAlert('alertDaftarSukses');
+    setTimeout(() => tutupModal('modalDaftar'), 2000);
+  }
+
+  // --------------------------------------------------------
+  // EVENT: Enter key untuk login
+  // Agar user bisa tekan Enter sebagai pengganti klik tombol
+  // --------------------------------------------------------
+  document.addEventListener('keydown', function(e) {
+    // e.key = nama tombol yang ditekan
+    if (e.key === 'Enter') prosesLogin();
+  });
+</script>
+
+</body>
+</html>

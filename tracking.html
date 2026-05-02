@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<!--
+  TRACKING.HTML - Halaman Tracking Pengiriman DO
+  Fitur: Input nomor DO, cari, tampilkan detail & timeline
+-->
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracking Pengiriman – SITTA</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- NAVBAR (sama di semua halaman) -->
+<nav class="navbar">
+  <div class="navbar-brand">SITTA <span>UT</span></div>
+  <ul class="nav-links">
+    <li><a href="stok.html">📦 Informasi Bahan Ajar</a></li>
+    <li><a href="tracking.html" class="active">🚚 Tracking Pengiriman</a></li>
+    <li class="dropdown">
+      <a href="#">📊 Laporan ▾</a>
+      <div class="dropdown-menu">
+        <a href="dashboard.html" onclick="sessionStorage.setItem('panel','monitoring')">📈 Monitoring Progress DO</a>
+        <a href="dashboard.html" onclick="sessionStorage.setItem('panel','rekap')">📋 Rekap Bahan Ajar</a>
+      </div>
+    </li>
+    <li><a href="dashboard.html">🏠 Dashboard</a></li>
+    <li><a href="index.html" onclick="sessionStorage.clear()" style="color:#f39c12;">🚪 Logout</a></li>
+  </ul>
+  <span id="greeting"></span>
+</nav>
+
+
+<main class="container">
+  <h2 style="font-size:1.4rem; color:var(--primary); font-weight:800; margin-bottom:1.5rem;">
+    🚚 Tracking Pengiriman Bahan Ajar
+  </h2>
+
+  <!-- Form Pencarian DO -->
+  <div class="card">
+    <div class="card-title">🔍 Cari Nomor Delivery Order</div>
+
+    <div class="d-flex gap-2 flex-wrap" style="align-items:flex-end;">
+      <div class="form-group" style="flex:1; min-width:200px; margin:0;">
+        <label for="inputNoDO">Nomor DO / Billing</label>
+        <input
+          type="text"
+          id="inputNoDO"
+          class="form-control"
+          placeholder="Contoh: DO-2024-001"
+          list="daftarDO"
+        />
+        <!-- datalist = memberi saran input (autocomplete) -->
+        <datalist id="daftarDO">
+          <option value="DO-2024-001" />
+          <option value="DO-2024-002" />
+          <option value="DO-2024-003" />
+        </datalist>
+      </div>
+      <button class="btn btn-primary" onclick="cariTracking()">🔍 Cari</button>
+      <button class="btn btn-outline" onclick="resetTracking()">↩ Reset</button>
+    </div>
+
+    <p style="font-size:0.78rem; color:#aaa; margin-top:0.5rem;">
+      Coba: DO-2024-001 | DO-2024-002 | DO-2024-003
+    </p>
+  </div>
+
+  <!-- Alert error -->
+  <div class="alert alert-danger" id="alertTidakDitemukan">
+    ⚠️ Nomor DO tidak ditemukan. Periksa kembali nomor yang Anda masukkan.
+  </div>
+
+  <!-- Hasil tracking (awalnya kosong) -->
+  <div id="hasilTracking"></div>
+</main>
+
+
+<script src="js/data.js"></script>
+<script>
+  // --------------------------------------------------------
+  // GREETING
+  // --------------------------------------------------------
+  (function() {
+    const jam = new Date().getHours();
+    const sapaan = jam < 12 ? '🌅 Pagi' : jam < 15 ? '☀️ Siang' : jam < 18 ? '🌤️ Sore' : '🌙 Malam';
+    const nama   = sessionStorage.getItem('namaUser') || '';
+    document.getElementById('greeting').textContent = `${sapaan}${nama ? ', ' + nama : ''}`;
+  })();
+
+  // --------------------------------------------------------
+  // FUNGSI: cariTracking()
+  // Mencari data tracking berdasarkan nomor DO yang diinput
+  // --------------------------------------------------------
+  function cariTracking() {
+    // Ambil nilai input dan ubah ke uppercase agar tidak case-sensitive
+    const noDO = document.getElementById('inputNoDO').value.trim().toUpperCase();
+
+    // Sembunyikan alert error dulu
+    document.getElementById('alertTidakDitemukan').classList.remove('show');
+    document.getElementById('hasilTracking').innerHTML = '';
+
+    // Validasi: input tidak boleh kosong
+    if (!noDO) {
+      alert('Masukkan nomor DO terlebih dahulu!');
+      return;
+    }
+
+    // Cari data di objek dataTracking (dari data.js)
+    // Kita coba dengan uppercase, lalu format asli
+    const data = dataTracking[noDO] || dataTracking[noDO.replace('DO-','DO-')];
+
+    if (!data) {
+      // Tidak ditemukan: tampilkan alert
+      document.getElementById('alertTidakDitemukan').classList.add('show');
+      return;
+    }
+
+    // Tentukan warna & teks badge status
+    const statusInfo = {
+      'Terkirim':          { kelas: 'badge-success', icon: '✅' },
+      'Dalam Pengiriman':  { kelas: 'badge-warning', icon: '🚚' },
+      'Diproses':          { kelas: 'badge-info',    icon: '⚙️' },
+    };
+    const st = statusInfo[data.status] || { kelas: 'badge-info', icon: '📦' };
+
+    // Buat HTML timeline perjalanan paket
+    // data.perjalanan adalah array, kita .map() untuk buat tiap item
+    const timelineHTML = data.perjalanan.map((p, index) => {
+      // Item terakhir = langkah saat ini, tandai dengan warna berbeda
+      const isLast = index === data.perjalanan.length - 1;
+      return `
+        <div class="timeline-item">
+          <div class="timeline-dot ${isLast ? 'done' : ''}"></div>
+          <div class="timeline-content">
+            <p>${p.keterangan}</p>
+            <small>🕐 ${p.waktu}</small>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Hitung progress bar berdasarkan status
+    const progressMap = { 'Terkirim': 100, 'Dalam Pengiriman': 65, 'Diproses': 20 };
+    const persen = progressMap[data.status] || 10;
+
+    // Render hasil tracking ke DOM
+    document.getElementById('hasilTracking').innerHTML = `
+      <!-- Info Mahasiswa & Status -->
+      <div class="card">
+        <div class="card-title">📦 Detail Pengiriman – ${noDO}</div>
+        <div class="d-flex gap-2 flex-wrap" style="align-items:center; margin-bottom:1.2rem;">
+          <span class="badge ${st.kelas}" style="font-size:0.9rem; padding:0.4rem 1rem;">
+            ${st.icon} ${data.status}
+          </span>
+          <span style="font-size:0.85rem; color:var(--text-light);">
+            Diperbarui: ${data.perjalanan[data.perjalanan.length-1].waktu}
+          </span>
+        </div>
+
+        <!-- Progress Bar visual -->
+        <div style="margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-light); margin-bottom:4px;">
+            <span>Pesanan Dibuat</span>
+            <span>Dalam Perjalanan</span>
+            <span>Terkirim</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:${persen}%"></div>
+          </div>
+        </div>
+
+        <!-- Tabel detail -->
+        <table style="font-size:0.9rem; width:100%;">
+          <tbody>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light); width:40%;">👤 Nama Mahasiswa</td>
+              <td style="padding:0.4rem; font-weight:600;">${data.namaMahasiswa}</td>
+            </tr>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light);">🎓 NIM</td>
+              <td style="padding:0.4rem;">${data.nim}</td>
+            </tr>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light);">🚢 Ekspedisi</td>
+              <td style="padding:0.4rem;">${data.ekspedisi}</td>
+            </tr>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light);">📅 Tanggal Kirim</td>
+              <td style="padding:0.4rem;">${formatTanggal(data.tanggalKirim)}</td>
+            </tr>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light);">📚 Jenis Paket</td>
+              <td style="padding:0.4rem;">${data.jenisPaket || data.jenisPatek || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding:0.4rem; color:var(--text-light);">💰 Total Pembayaran</td>
+              <td style="padding:0.4rem; font-weight:700; color:var(--primary);">
+                Rp ${data.totalPembayaran.toLocaleString('id-ID')}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Timeline perjalanan -->
+      <div class="card">
+        <div class="card-title">🗺️ Perjalanan Paket</div>
+        <div class="timeline">
+          ${timelineHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: resetTracking()
+  // Mengosongkan hasil pencarian
+  // --------------------------------------------------------
+  function resetTracking() {
+    document.getElementById('inputNoDO').value = '';
+    document.getElementById('hasilTracking').innerHTML = '';
+    document.getElementById('alertTidakDitemukan').classList.remove('show');
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: formatTanggal(str)
+  // Mengubah format tanggal "2024-03-20" jadi "20 Maret 2024"
+  // --------------------------------------------------------
+  function formatTanggal(str) {
+    const bulan = ['','Januari','Februari','Maret','April','Mei','Juni',
+                   'Juli','Agustus','September','Oktober','November','Desember'];
+    const [y, m, d] = str.split('-');  // Destructuring: pecah string menjadi variabel
+    return `${parseInt(d)} ${bulan[parseInt(m)]} ${y}`;
+  }
+
+  // Cek login
+  if (!sessionStorage.getItem('namaUser')) window.location.href = 'index.html';
+
+  // Enter key untuk cari
+  document.getElementById('inputNoDO').addEventListener('keydown', e => {
+    if (e.key === 'Enter') cariTracking();
+  });
+</script>
+
+</body>
+</html>

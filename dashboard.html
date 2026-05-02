@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<!--
+  DASHBOARD.HTML - Halaman Dashboard Utama SITTA
+  Fitur: Navigasi menu, greeting waktu, stat cards, histori transaksi
+-->
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – SITTA</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ==========================================
+     NAVBAR / NAVIGASI ATAS
+     ========================================== -->
+<nav class="navbar">
+  <div class="navbar-brand">SITTA <span>UT</span></div>
+
+  <!-- Menu Navigasi -->
+  <ul class="nav-links">
+    <li><a href="stok.html">📦 Informasi Bahan Ajar</a></li>
+    <li><a href="tracking.html">🚚 Tracking Pengiriman</a></li>
+
+    <!-- Dropdown Laporan -->
+    <li class="dropdown">
+      <a href="#">📊 Laporan ▾</a>
+      <div class="dropdown-menu">
+        <a href="#" onclick="tampilkanMonitoring()">📈 Monitoring Progress DO</a>
+        <a href="#" onclick="tampilkanRekap()">📋 Rekap Bahan Ajar</a>
+      </div>
+    </li>
+
+    <li><a href="#" onclick="tampilkanHistori()">🕐 Histori Transaksi</a></li>
+    <li><a href="index.html" onclick="logout()" style="color:#f39c12;">🚪 Logout</a></li>
+  </ul>
+
+  <!-- Greeting waktu -->
+  <span id="greeting"></span>
+</nav>
+
+
+<!-- ==========================================
+     KONTEN UTAMA
+     ========================================== -->
+<main class="container">
+
+  <!-- Header Dashboard -->
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:1.5rem; color:var(--primary); font-weight:800;">Dashboard Aplikasi SITTA</h2>
+    <p id="subGreeting" style="color:var(--text-light); font-size:0.9rem;"></p>
+  </div>
+
+  <!-- Kartu Statistik -->
+  <div class="stat-grid" id="statGrid">
+    <!-- Diisi oleh JavaScript -->
+  </div>
+
+  <!-- Panel konten dinamis (berganti saat menu diklik) -->
+  <div id="panelKonten">
+    <!-- Default: tampilkan ringkasan -->
+    <div class="card">
+      <div class="card-title">📋 Ringkasan Sistem</div>
+      <p style="color:var(--text-light); font-size:0.92rem; line-height:1.7;">
+        Selamat datang di <strong>SITTA</strong> — Sistem Informasi Tiras &amp; Transaksi Bahan Ajar 
+        Universitas Terbuka. Gunakan menu navigasi di atas untuk mengakses fitur:
+      </p>
+      <ul style="margin:1rem 0 0 1.2rem; font-size:0.92rem; line-height:2; color:var(--text);">
+        <li>📦 <strong>Informasi Bahan Ajar</strong> – Lihat &amp; kelola stok bahan ajar</li>
+        <li>🚚 <strong>Tracking Pengiriman</strong> – Lacak status pengiriman DO</li>
+        <li>📊 <strong>Laporan</strong> – Monitoring progress &amp; rekap data</li>
+        <li>🕐 <strong>Histori Transaksi</strong> – Riwayat transaksi bahan ajar</li>
+      </ul>
+    </div>
+  </div>
+
+</main>
+
+
+<!-- JavaScript -->
+<script src="js/data.js"></script>
+<script>
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanGreeting()
+  // Menampilkan sapaan berdasarkan jam lokal pengguna
+  // --------------------------------------------------------
+  function tampilkanGreeting() {
+    // new Date() = membuat objek tanggal/waktu sekarang
+    const jam = new Date().getHours(); // .getHours() = ambil jam (0-23)
+
+    let sapaan, emoji;
+    if (jam >= 5 && jam < 12) {
+      sapaan = 'Selamat Pagi';  emoji = '🌅';
+    } else if (jam >= 12 && jam < 15) {
+      sapaan = 'Selamat Siang'; emoji = '☀️';
+    } else if (jam >= 15 && jam < 18) {
+      sapaan = 'Selamat Sore';  emoji = '🌤️';
+    } else {
+      sapaan = 'Selamat Malam'; emoji = '🌙';
+    }
+
+    // Ambil nama user dari sessionStorage (disimpan saat login)
+    const namaUser = sessionStorage.getItem('namaUser') || 'Pengguna';
+
+    // Ubah teks elemen menggunakan .textContent
+    document.getElementById('greeting').textContent = `${emoji} ${sapaan}, ${namaUser}`;
+    document.getElementById('subGreeting').textContent =
+      `${sapaan}, ${namaUser}! Semangat bekerja hari ini.`;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanStatistik()
+  // Membuat kartu statistik secara dinamis dari data
+  // --------------------------------------------------------
+  function tampilkanStatistik() {
+    // Hitung total stok dari dataBahanAjar (array dari data.js)
+    // Array.reduce() = akumulasi nilai dari tiap elemen array
+    const totalStok = dataBahanAjar.reduce((sum, item) => sum + item.stok, 0);
+
+    // Hitung jumlah DO selesai
+    const doSelesai  = dataMonitoringDO.filter(d => d.status === 'Selesai').length;
+    const doProses   = dataMonitoringDO.filter(d => d.status === 'Proses' || d.status === 'Diproses').length;
+
+    // Data kartu statistik dalam bentuk array of object
+    const stats = [
+      { label: 'Total Bahan Ajar', value: dataBahanAjar.length + ' Judul', kelas: '' },
+      { label: 'Total Stok',        value: totalStok.toLocaleString('id'),   kelas: 'accent' },
+      { label: 'DO Selesai',         value: doSelesai + ' DO',               kelas: 'success' },
+      { label: 'DO Dalam Proses',    value: doProses  + ' DO',               kelas: 'danger' },
+    ];
+
+    // Buat HTML kartu secara dinamis menggunakan innerHTML
+    // Template literal (backtick) memudahkan menulis HTML di JS
+    const grid = document.getElementById('statGrid');
+    grid.innerHTML = stats.map(s => `
+      <div class="stat-card ${s.kelas}">
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-value">${s.value}</div>
+      </div>
+    `).join(''); // .join('') = gabung array string menjadi satu string
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanHistori()
+  // Menampilkan tabel histori transaksi di panel konten
+  // --------------------------------------------------------
+  function tampilkanHistori() {
+    // Buat baris tabel dari array dataHistori
+    const baris = dataHistori.map(h => `
+      <tr>
+        <td>${h.tanggal}</td>
+        <td><strong>${h.noDO}</strong></td>
+        <td>${h.utDaerah}</td>
+        <td>${h.total}</td>
+        <td>
+          <span class="badge ${h.status === 'Lunas' ? 'badge-success' : 'badge-warning'}">
+            ${h.status}
+          </span>
+        </td>
+      </tr>
+    `).join('');
+
+    // innerHTML = mengubah isi HTML elemen secara langsung
+    document.getElementById('panelKonten').innerHTML = `
+      <div class="card">
+        <div class="card-title">🕐 Histori Transaksi Bahan Ajar</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>No. DO</th>
+                <th>UT Daerah</th>
+                <th>Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${baris}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanMonitoring()
+  // Menampilkan progress DO dengan progress bar
+  // --------------------------------------------------------
+  function tampilkanMonitoring() {
+    const baris = dataMonitoringDO.map(d => `
+      <tr>
+        <td><strong>${d.noDO}</strong></td>
+        <td>${d.utDaerah}</td>
+        <td>${d.jumlahItem} item</td>
+        <td>
+          <div class="progress" style="width:160px;">
+            <div class="progress-bar" style="width:${d.persentase}%"></div>
+          </div>
+          <small>${d.persentase}%</small>
+        </td>
+        <td>
+          <span class="badge ${d.status==='Selesai'?'badge-success':d.status==='Proses'||d.status==='Diproses'?'badge-warning':'badge-info'}">
+            ${d.status}
+          </span>
+        </td>
+      </tr>
+    `).join('');
+
+    document.getElementById('panelKonten').innerHTML = `
+      <div class="card">
+        <div class="card-title">📈 Monitoring Progress DO Bahan Ajar</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>No. DO</th><th>UT Daerah</th><th>Jumlah Item</th><th>Progress</th><th>Status</th></tr>
+            </thead>
+            <tbody>${baris}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: tampilkanRekap()
+  // Menampilkan rekap ringkasan bahan ajar
+  // --------------------------------------------------------
+  function tampilkanRekap() {
+    const totalStok = dataBahanAjar.reduce((sum, d) => sum + d.stok, 0);
+    const baris = dataBahanAjar.map(d => `
+      <tr>
+        <td>${d.kodeLokasi}</td>
+        <td>${d.kodeBarang}</td>
+        <td>${d.namaBarang}</td>
+        <td>${d.jenisBarang}</td>
+        <td>${d.edisi}</td>
+        <td><strong>${d.stok.toLocaleString('id')}</strong></td>
+      </tr>
+    `).join('');
+
+    document.getElementById('panelKonten').innerHTML = `
+      <div class="card">
+        <div class="card-title">📋 Rekap Bahan Ajar – Total Stok: <span style="color:var(--accent)">${totalStok.toLocaleString('id')}</span></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Kode Lokasi</th><th>Kode Barang</th><th>Nama Barang</th><th>Jenis</th><th>Edisi</th><th>Stok</th></tr>
+            </thead>
+            <tbody>${baris}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // --------------------------------------------------------
+  // FUNGSI: logout()
+  // Hapus session dan kembali ke halaman login
+  // --------------------------------------------------------
+  function logout() {
+    // sessionStorage.clear() = hapus semua data session
+    sessionStorage.clear();
+    // Navigasi ke halaman login
+    window.location.href = 'index.html';
+  }
+
+  // --------------------------------------------------------
+  // INISIALISASI: jalankan saat halaman pertama kali dimuat
+  // --------------------------------------------------------
+  // Cek login: jika tidak ada nama user, redirect ke login
+  if (!sessionStorage.getItem('namaUser')) {
+    window.location.href = 'index.html';
+  }
+
+  tampilkanGreeting();    // Tampilkan greeting
+  tampilkanStatistik();   // Tampilkan kartu statistik
+</script>
+
+</body>
+</html>
